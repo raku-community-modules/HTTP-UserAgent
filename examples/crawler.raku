@@ -1,5 +1,4 @@
-#!/usr/bin/env perl6
-use v6;
+#!/usr/bin/env raku
 use HTTP::UserAgent;
 
 sub MAIN(Str $start_url) {
@@ -36,5 +35,7 @@ sub MAIN(Str $start_url) {
 }
 
 sub get-urls($content) {
-    $content.match(/ \s 'href="' (<-["]>+) '"' /, :g).for({ $_[0] }).grep( rx:i/^http/ );
+    $content.match(/ \s 'href="' (<-["]>+) '"' /, :g).map({ $_[0] }).grep( rx:i/^http/ );
 }
+
+# vim: expandtab shiftwidth=4

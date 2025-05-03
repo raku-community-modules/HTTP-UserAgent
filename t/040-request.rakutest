@@ -112,4 +112,5 @@ subtest {
         like $req.header.field('content-type').Str, /"multipart\/form-data"/, "and got multipart data";
     }, 'multipart explicit with slurpy hash (check no gobble adverb)';
 }, 'add-form-data';
-# vim: expandtab shiftwidth=4 ft=perl6
+
+# vim: expandtab shiftwidth=4

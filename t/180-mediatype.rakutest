@@ -1,6 +1,7 @@
-use v6;
-use Test;
 use HTTP::MediaType;
+use Test;
+
+plan 5;
 
 is-deeply(
     HTTP::MediaType.parse('text/html; charset=ISO-8859-1'),
@@ -39,5 +40,4 @@ subtest {
     is $mt.Str, 'multipart/form-data; boundary=XxYyZ', "update param";
 }, 'update param';
 
-done-testing;
-
+# vim: expandtab shiftwidth=4

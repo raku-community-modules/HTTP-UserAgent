@@ -1,10 +1,6 @@
-#!perl6
-
-use v6;
-
+use HTTP::UserAgent;
 use Test;
 
-use HTTP::UserAgent;
 plan 5;
 
 if %*ENV<NETWORK_TESTING> {
@@ -53,6 +49,4 @@ else {
     skip-rest("'NETWORK_TESTING' not set not performing tests");
 }
 
-
-done-testing;
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4

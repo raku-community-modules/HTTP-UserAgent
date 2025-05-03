@@ -3,9 +3,7 @@ unit class HTTP::MediaType;
 class X::MediaTypeParser::IllegalMediaType is Exception {
     has $.media-type;
 
-    method message() {
-        die "Illegal media type: '$.media-type'";
-    }
+    method message() { "Illegal media type: '$.media-type'" }
 }
 
 my grammar MediaTypeGrammar {
@@ -71,31 +69,30 @@ method charset(HTTP::MediaType:D:) returns Str {
     (%!parameters<charset> // '').lc;
 }
 
-method parse(Str $content-type) {
-    my $result = MediaTypeGrammar.parse($content-type, :actions(MediaTypeAction));
+method parse(Str $media-type) {
+    my $result = MediaTypeGrammar.parse($media-type, :actions(MediaTypeAction));
     if $result {
         $result.made;
-    } else {
-        X::MediaTypeParser::IllegalMediaType.new(media-type => $content-type)
-            .throw();
+    }
+    else {
+        X::MediaTypeParser::IllegalMediaType.new(:$media-type).throw;
     }
 }
 
-proto method param(|c) { * }
+proto method param(|) {*}
 
-multi method param(Str $name) {
+multi method param(Str:D $name) {
     %!parameters{$name};
 }
 
-multi method param(Str $name, Str $value) {
-    %!parameters{$name} = $value;
+multi method param(Str:D $name, Str:D $value) {
+    %!parameters{$name} = $value
 }
 
 method Str(HTTP::MediaType:D:) {
-    my Str $s = $.type;
-    if %!parameters {
-        $s ~= "; " ~ %!parameters.kv.map({ $^a ~ "=" ~ $^b }).join(";")
-    }
-    $s;
+    %!parameters
+      ?? $.type ~ "; " ~ %!parameters.map({ .key ~ "=" ~ .value }).join(";")
+      !! $.type
 }
 
+# vim: expandtab shiftwidth=4

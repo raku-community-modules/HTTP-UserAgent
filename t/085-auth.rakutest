@@ -1,10 +1,7 @@
-#!/usr/bin/env perl6
-
-use v6;
-
-
 use Test;
 use HTTP::UserAgent;
+
+plan 7;
 
 my $ua = HTTP::UserAgent.new;
 
@@ -23,9 +20,7 @@ if %*ENV<NETWORK_TESTING>:exists {
    is $res.code, 200, "and it's a 200";
 }
 else {
-   skip("NETWORK_TESTING is not set", 2);
+   skip("NETWORK_TESTING is not set", 4);
 }
 
-
-
-done-testing;
+# vim: expandtab shiftwidth=4

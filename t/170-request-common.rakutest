@@ -1,9 +1,8 @@
-use v6.c;
 use Test;
-
+use HTTP::Request::Common;
 use URI;
 
-use HTTP::Request::Common;
+plan 7;
 
 subtest {
     subtest {
@@ -110,4 +109,4 @@ subtest {
     }, 'header';
 }, 'PATCH';
 
-done-testing;
+# vim: expandtab shiftwidth=4

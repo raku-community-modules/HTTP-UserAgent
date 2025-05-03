@@ -1,0 +1,875 @@
+=begin pod
+
+=head1 NAME
+
+HTTP::UserAgent - Web user agent class
+
+=head1 SYNOPSIS
+
+=begin code :lang<raku>
+
+use HTTP::UserAgent;
+
+my $ua = HTTP::UserAgent.new;
+$ua.timeout = 10;
+
+my $response = $ua.get("URL");
+
+if $response.is-success {
+    say $response.content;
+}
+else {
+    die $response.status-line;
+}
+
+=end code
+
+=head1 DESCRIPTION
+
+This module provides functionality to crawling the web witha handling
+cookies and correct User-Agent value.
+
+It has TLS/SSL support.
+
+=head1 METHODS
+
+=head2 method new
+
+=begin code :lang<raku>
+
+method new(HTTP::UserAgent:U: :$!useragent, Bool :$!throw-exceptions, :$!max-redirects = 5, :$!debug)
+
+=end code
+
+Default constructor.
+
+There are four optional named arguments:
+
+=item useragent
+
+A string that specifies what will be provided in the C<User-Agent> header in
+the request.  A number of standard user agents are described in
+L<HTTP::UserAgent::Common>, but a string that is not specified there will be
+used verbatim.
+
+=item throw-exceptions
+
+By default the C<request> method will not throw an exception if the
+response from the server indicates that the request was unsuccesful, in
+this case you should check C<is-success> to determine the status of the
+L<HTTP::Response> returned.  If this is specified then an exception will
+be thrown if the request was not a success, however you can still retrieve
+the response from the C<response> attribute of the exception object.
+
+=item max-redirects
+
+This is the maximum number of redirects allowed for a single request, if
+this is exceeded then an exception will be thrown (this is not covered by
+C<no-exceptions> above and will always be throw,) the default value is 5.
+
+=item debug
+
+It can etheir be a Bool like simply C<:debug> or you can pass it a IO::Handle
+or a file name. Eg C<:debug($*ERR)> will ouput on stderr C<:debug("mylog.txt")>
+will ouput on the file.
+
+=head2 method auth
+
+=begin code :lang<raku>
+
+method auth(HTTP::UserAgent:, Str $login, Str $password)
+
+=end code
+
+Sets username and password needed to HTTP Auth.
+
+=head2 method get
+
+=begin code :lang<raku>
+
+multi method get(Str $url is copy, :bin?, *%headers)
+multi method get(URI $uri, :bin?, *%headers)
+
+=end code
+
+Requests the $url site, returns HTTP::Response, except if throw-exceptions
+is set as described above whereby an exception will be thrown if the
+response indicates that the request wasn't successfull.
+
+If the Content-Type of the response indicates that the content is text the
+C<content> of the Response will be a decoded string, otherwise it will be
+left as a L<Blob>.
+
+If the ':bin' adverb is supplied this will force the response C<content> to
+always be an undecoded L<Blob>
+
+Any additional named arguments will be applied as headers in the request.
+
+=head2 method post
+
+=begin code :lang<raku>
+
+multi method post(URI $uri, %form, *%header ) -> HTTP::Response
+multi method post(Str $uri, %form, *%header ) -> HTTP::Response
+
+=end code
+
+Make a POST request to the specified uri, with the provided Hash of %form
+data in the body encoded as "application/x-www-form-urlencoded" content.
+Any additional named style arguments will be applied as headers in the
+request.
+
+An L<HTTP::Response> will be returned, except if throw-exceptions has been set
+and the response indicates the request was not successfull.
+
+If the Content-Type of the response indicates that the content is text the
+C<content> of the Response will be a decoded string, otherwise it will be
+left as a L<Blob>.
+
+If the ':bin' adverb is supplied this will force the response C<content> to
+always be an undecoded L<Blob>
+
+If greater control over the content of the request is required you should
+create an L<HTTP::Request> directly and populate it as needed,
+
+=head2 method request
+
+=begin code :lang<raku>
+
+method request(HTTP::Request $request, :bin?)
+
+=end code
+
+Performs the request described by the supplied L<HTTP::Request>, returns
+a L<HTTP::Response>, except if throw-exceptions is set as described above
+whereby an exception will be thrown if the response indicates that the
+request wasn't successful.
+
+If the response has a 'Content-Encoding' header that indicates that the
+content was compressed, then it will attempt to inflate the data using
+L<Compress::Zlib>, if the module is not installed then an exception will
+be thrown. If you do not have or do not want to install L<Compress::Zlib>
+then you should be able to send an 'Accept-Encoding' header with a value
+of 'identity' which should cause a well behaved server to send the content
+verbatim if it is able to.
+
+If the Content-Type of the response indicates that the content is text the
+C<content> of the Response will be a decoded string, otherwise it will be
+left as a L<Blob>. The content-types that are always considered to be
+binary (and thus left as a L<Blob> ) are those with the major-types of
+'image','audio' and 'video', certain 'application' types are considered to
+be 'text' (e.g. 'xml', 'javascript', 'json').
+
+If the ':bin' adverb is supplied this will force the response C<content> to
+always be an undecoded L<Blob>
+
+You can use the helper subroutines defined in L<HTTP::Request::Common> to
+create the L<HTTP::Request> for you or create it yourself if you have more
+complex requirements.
+
+=head2 routine get :simple
+
+=begin code :lang<raku>
+
+sub get(Str $url) returns Str is export(:simple)
+
+=end code
+
+Like method get, but returns decoded content of the response.
+
+=head2 routine head :simple
+
+=begin code :lang<raku>
+
+sub head(Str $url) returns Parcel is export(:simple)
+
+=end code
+
+Returns values of following header fields:
+
+=item Content-Type
+=item Content-Length
+=item Last-Modified
+=item Expires
+=item Server
+
+=head2 routine getstore :simple
+
+=begin code :lang<raku>
+
+sub getstore(Str $url, Str $file) is export(:simple)
+
+=end code
+
+Like routine get but writes the content to a file.
+
+=head2 routine getprint :simple
+
+=begin code :lang<raku>
+
+sub getprint(Str $url) is export(:simple)
+
+=end code
+
+Like routine get but prints the content and returns the response code.
+
+=head1 SUPPORT MODULES
+
+=head2 HTTP::Cookie - HTTP cookie class
+
+This module encapsulates single HTTP Cookie.
+
+=begin code :lang<raku>
+
+use HTTP::Cookie;
+
+my $cookie = HTTP::Cookie.new(:name<test_name>, :value<test_value>);
+say ~$cookie;
+
+=end code
+
+The following methods are provided:
+
+=head3 method new
+
+=begin code :lang<raku>
+
+my $c = HTTP::Cookie.new(:name<a_cookie>, :value<a_value>, :secure, fields => (a => b));
+
+=end code
+
+A constructor, it takes these named arguments:
+
+=table
+key      | description
+---------+------------
+name     | name of a cookie
+value    | value of a cookie
+secure   | Secure param
+httponly | HttpOnly param
+fields   | list of field Pairs (field => value)
+
+=head3 method Str
+
+Returns a cookie as a string in readable (RFC2109) form.
+
+=head2 HTTP::Cookies - HTTP cookie jars
+
+This module provides a bunch of methods to manage HTTP cookies.
+
+=begin code :lang<raku>
+
+use HTTP::Cookies;
+my $cookies = HTTP::Cookies.new(
+  :file<./cookies>,
+  :autosave
+);
+$cookies.load;
+
+=end code
+
+=head3 method new
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new(
+  :file<./cookies.here>
+  :autosave,
+);
+
+Constructor, takes named arguments:
+
+=end code
+
+=table
+key      | description
+-------- +------------
+file     | where to write cookies
+autosave | save automatically after every operation on cookies or not
+
+=head3 method set-cookie
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new;
+$cookies.set-cookie('Set-Cookie: name1=value1; HttpOnly');
+
+=end code
+
+Adds a cookie (passed as an argument $str of type Str) to the list of cookies.
+
+=head3 method save
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new;
+$cookies.set-cookie('Set-Cookie: name1=value1; HttpOnly');
+$cookies.save;
+
+=end code
+
+Saves cookies to the file ($.file).
+
+=head3 method load
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new;
+$cookies.load;
+
+=end code
+
+Loads cookies from file specified at instantiation ($.file).
+
+=head3 method extract-cookies
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new;
+my $response = HTTP::Response.new(Set-Cookie => "name1=value; Secure");
+$cookies.extract-cookies($response);
+
+=end code
+
+Gets cookies ('Set-Cookie: ' lines) from the HTTP Response and adds it to
+the list of cookies.
+
+=head3 method add-cookie-header
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new;
+my $request = HTTP::Request.new;
+$cookies.load;
+$cookies.add-cookie-header($request);
+
+=end code
+
+Adds cookies fields ('Cookie: ' lines) to the HTTP Request.
+
+=head3 method clear-expired
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new;
+$cookies.set-cookie('Set-Cookie: name1=value1; Secure');
+$cookies.set-cookie('Set-Cookie: name2=value2; Expires=Wed, 09 Jun 2021 10:18:14 GMT');
+$cookies.clear-expired; # contains 'name1' cookie only
+
+=end code
+
+Removes expired cookies.
+
+=head3 method clear
+
+=begin code :lang<raku>
+
+my $cookies = HTTP::Cookies.new;
+$cookies.load;   # contains something
+$cookies.clear;  # will be empty after this action
+
+=end code
+
+Removes all cookies.
+
+=head3 method push-cookie
+
+=begin code :lang<raku>
+
+my $c = HTTP::Cookie.new(:name<a>, :value<b>, :httponly);
+my $cookies = HTTP::Cookies.new;
+$cookies.push-cookie: $c;
+
+=end code
+
+Pushes cookies (passed as an argument $c of type HTTP::Cookie) to the
+list of cookies.
+
+=head3 method Str
+
+Returns all cookies in human (and server) readable form.
+
+=head2 HTTP::UserAgent::Common - the most commonly used User-Agents
+
+This module provides a list of the most commonly used User-Agents.
+
+=begin code :lang<raku>
+
+use HTTP::UserAgent::Common;
+say get-ua('chrome_linux');
+
+=end code
+
+=head3 routine get-ua
+
+=begin code :lang<raku>
+
+say get-ua('chrome_linux');
+
+=end code
+
+Returns correct UserAgent or unchaged passed argument if UserAgent could not be found.
+
+Available UserAgents:
+
+=begin output
+
+chrome_w7_64 firefox_w7_64 ie_w7_64 chrome_w81_64 firefox_w81_64 mob_safari_osx
+safari_osx chrome_osx firefox_linux chrome_linux
+
+=end output
+
+=head2 HTTP::Header - class encapsulating HTTP message header
+
+This module provides a class with a set of methods making us able to
+easily handle HTTP message headers.
+
+=begin code :lang<raku>
+
+use HTTP::Header;
+my $h = HTTP::Header.new;
+$h.field(Accept => 'text/plain');
+say $h.field('Accept');
+$h.remove-field('Accept');
+
+=end code
+
+=head3 method new
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new(:h1<v1>, :h2<v2>);
+
+=end code
+
+A constructor. Takes name => value pairs as arguments.
+
+=head3 method header
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new(:h1<v1>, :h2<v2>);
+say $head.header('h1');
+
+my $head = HTTP::Header.new(:h1<v1>, :h2<v2>);
+$head.header(:h3<v3>);
+
+=end code
+
+Gets/sets header field.
+
+=head3 method init-field
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new;
+$head.header(:h1<v1>);
+$head.init-header(:h1<v2>, :h2<v2>); # it doesn't change the value of 'h1'
+say ~$head;
+
+=end code
+
+Initializes a header field: adds a field only if it does not exist yet.
+
+=head3 method push-header
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new;
+$head.push-header( HTTP::Header::Field.new(:name<n1>, :value<v1>) );
+say ~$head;
+
+=end code
+
+Pushes a new field. Does not check if exists.
+
+=head3 method remove-header
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new;
+$head.header(:h1<v1>);
+$head.remove-header('h1');
+
+=end code
+
+Removes a field of name $field.
+
+=head3 method header-field-names
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new(:h1<v1>, :h2<v2>);
+my @names = $head.header-field-names;
+say @names; # h1, h2
+
+=end code
+
+Returns a list of names of all fields.
+
+=head3 method clear
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new(:h1<v1>, :h2<v2>);
+$head.clear;
+
+=end code
+
+Removes all fields.
+
+=head3 method Str
+
+Returns readable form of the whole header section.
+
+=head3 method parse
+
+=begin code :lang<raku>
+
+my $head = HTTP::Header.new.parse("h1: v1\r\nh2: v2\r\n");
+say $head.raku;
+
+=end code
+
+Parses the whole header section.
+
+=head2 HTTP::Header::Field
+
+This module provides a class encapsulating HTTP Message header field.
+
+=begin code :lang<raku>
+
+use HTTP::Header::Field;
+my $header = HTTP::Header::Field.new(:name<Date>, values => (123, 456));
+
+=end code
+
+=head3 method new
+
+Constructor. Takes these named arguments:
+
+=table
+key    | description
+-------+------------
+name   | name of a header field
+values | array of values of a header field
+
+=head3 method Str
+
+Stringifies an HTTP::Header::Field object. Returns a header field in a
+human (and server) readable form.
+
+=head2 HTTP::Request - class encapsulating HTTP request message
+
+Module provides functionality to easily manage HTTP requests.
+
+=begin code :lang<raku>
+
+use HTTP::Request;
+my $request = HTTP::Request.new(GET => 'http://www.example.com/');
+
+=end code
+
+=head3 method new
+
+A constructor, the first form takes parameters like:
+
+=item method => URL, where method can be POST, GET ... etc.
+=item field => values, header fields
+
+=begin code :lang<raku>
+
+my $req = HTTP::Request.new(:GET<example.com>, :h1<v1>);
+
+=end code
+
+The second form takes the key arguments as simple positional parameters and
+is designed for use in places where for example the request method may be
+calculated and the headers pre-populated.
+
+=head3 method set-method
+
+=begin code :lang<raku>
+
+my $req = HTTP::Request.new;
+$req.set-method: 'POST';
+
+=end code
+
+Sets a method of the request.
+
+=head3 method uri
+
+=begin code :lang<raku>
+
+my $req = HTTP::Request.new;
+$req.uri: 'example.com';
+
+=end code
+
+Sets URL to request.
+
+=head3 method add-cookies
+
+=begin code :lang<raku>
+
+method add-cookies(HTTP::Cookies $cookies)
+
+=end code
+
+This will cause the appropriate cookie headers to be added from the
+supplied HTTP::Cookies object.
+
+=head3 method add-form-data
+
+=begin code :lang<raku>
+
+multi method add-form-data(%data, :$multipart)
+multi method add-form-data(:$multipart, *%data);
+multi method add-form-data(Array $data, :$multipart)
+
+=end code
+
+Adds the form data, supplied either as a C<Hash>, an C<Array> of C<Pair>s,
+or in a named parameter style, to the POST request (it doesn't
+make sense on most other request types).
+
+The default is to use 'application/x-www-form-urlencoded' and
+'multipart/form-data' can be used by providing the ':multipart' named
+argument.  Alternatively a previously applied "content-type" header of
+either 'application/x-www-form-urlencoded' or 'multipart/form-data' will
+be respected and in the latter case any applied boundary marker will be
+retained.
+
+As a special case for multipart data if the value for some key in the
+data is an C<Array> of at least one item then it is taken to be a
+description of a file to be "uploaded" where the first item is the path
+to the file to be inserted, the second (optional) an alternative name to
+be used in the content disposition header and the third an optional
+C<Array> of C<Pair>s that will provide additional header lines for the
+part.
+
+=head3 method Str
+
+Returns stringified object.
+
+=head3 method parse
+
+=begin code :lang<raku>
+
+method parse(Str $raw_request --> HTTP::Request:D)
+
+=end code
+
+Parses raw HTTP request.  See C<HTTP::Message>
+
+=head2 HTTP::Request::Common - Construct common HTTP::Request objects
+
+=begin code :lang<raku>
+
+use HTTP::Request::Common;
+
+my $ua       = HTTP::UserAgent.new;
+my $response = $ua.request(GET 'http://google.com/');
+
+=end code
+
+This module provide functions that return newly created C<HTTP::Request>
+objects. These functions are usually more convenient to use than the
+standard C<HTTP::Request> constructor for the most common requests. The
+following functions are provided:
+
+=head3 GET $url, Header => Value...
+
+The C<GET> function returns an C<HTTP::Request> object initialized with
+the "GET" method and the specified URL.
+
+=head3 HEAD $url, Header => Value,...
+    
+Like C<GET> but the method in the request is "HEAD".
+    
+=head3 DELETE $url, Header => Value,...
+  
+Like C<GET> but the method in the request is "DELETE".
+    
+=head3 C<PUT $url, Header => Value,..., content => $content>
+  
+Like C<GET> but the method in the request is "PUT".
+
+=head2 HTTP::Response - class encapsulating HTTP response message
+
+=begin code :lang<raku>
+
+use HTTP::Response;
+my $response = HTTP::Response.new(200);
+say $response.is-success; # it is
+
+=end code
+
+Module provides functionality to easily manage HTTP responses.
+
+Response object is returned by the .get() method of L<HTTP::UserAgent>.
+
+=head3 method new
+
+=begin code :lang<raku>
+
+my $response = HTTP::Response.new(200, :h1<v1>);
+
+=end code
+
+A constructor, takes named arguments:
+
+=table
+key    | description
+-------+------------
+code   | code of the response
+fields | header fields (field_name => values)
+
+=head3 method is-success
+
+=begin code :lang<raku>
+
+my $response = HTTP::Response.new(200);
+say 'YAY' if $response.is-success;
+
+=end code
+
+Returns True if response is successful (status == 2xx), False otherwise.
+
+=head2 method set-code
+
+=begin code :lang<raku>
+
+my $response = HTTP::Response.new;
+$response.set-code: 200;
+
+=end code
+
+Sets code of the response.
+
+=head3 method Str
+
+Returns stringified object.
+
+=head3 method parse
+
+See C<HTTP::Message>.
+
+=head2 HTTP::Message - class encapsulating HTTP message
+
+=begin code :lang<raku>
+
+use HTTP::Message;
+my $raw_msg = "GET / HTTP/1.1\r\nHost: somehost\r\n\r\n";
+my $mess = HTTP::Message.new.parse($raw_msg);
+say $mess;
+
+=end code
+
+This module provides a bunch of methods to easily manage HTTP message.
+
+=head3 method new
+
+=begin code :lang<raku>
+
+my $msg = HTTP::Message.new('content', :field<value>);
+
+=end code
+
+A constructor, takes these named arguments:
+
+=table
+key     | description
+--------+------------
+content | content of the message (optional)
+fields  | fields of the header section
+
+=head3 method add-content
+
+=begin code :lang<raku>
+
+my $msg = HTTP::Message.new('content', :field<value>);
+$msg.add-content: 's';
+say $msg.content; # says 'contents'
+
+=end code
+
+Adds HTTP message content. It does not remove the existing value,
+it concats to the existing content.
+
+=head3 method decoded-content
+
+=begin code :lang<raku>
+
+my $msg = HTTP::Message.new();
+say $msg.decoded-content;
+
+=end code
+
+Returns decoded content of the message (using L<Encode> module to decode).
+
+=head3 method field
+
+See C<HTTP::Header>.
+
+=head3 method init-field
+
+See C<HTTP::Header>.
+
+=head3 method push-field
+
+See C<HTTP::Header>.
+
+=head3 method remove-field
+
+See C<HTTP::Header>.
+
+=head3 method clear
+
+=begin code :lang<raku>
+
+my $msg = HTTP::Message.new('content', :field<value>);
+$msg.clear;
+say ~$msg; # says nothing
+
+=end code
+
+Removes the whole message, both header and content section.
+
+=head3 method parse
+
+=begin code :lang<raku>
+
+my $msg = HTTP::Message.new.parse("GET / HTTP/1.1\r\nHost: example\r\ncontent\r\n");
+say $msg.raku;
+
+=end code
+
+Parses the whole HTTP message.
+
+It takes the HTTP message (with \r\n as a line separator) and obtains the header
+and content sections, creates a C<HTTP::Header> object.
+
+=head3 method Str
+
+Returns HTTP message in a readable form.
+
+=head1 AUTHOR
+
+=item Filip Sergot
+
+Source can be located at: https://github.com/raku-community-modules/HTTP-UserAgent .
+Comments and Pull Requests are welcome.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2014 - 2022 Filip Sergot
+
+Copyright 2023 - 2025 The Raku Community
+
+This library is free software; you can redistribute it and/or modify it under the MIT License.
+
+=end pod
+
+# vim: expandtab shiftwidth=4

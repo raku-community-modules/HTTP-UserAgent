@@ -27,3 +27,5 @@ if %*ENV<NETWORK_TESTING> {
 else {
     skip-rest "NETWORK_TESTING not set won't do network tests";
 }
+
+# vim: expandtab shiftwidth=4

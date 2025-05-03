@@ -1,5 +1,4 @@
 use Test;
-
 use HTTP::Header;
 
 plan 23;
@@ -87,3 +86,5 @@ EOH
    $h.parse($htest);
    is $h.fields.elems,17, "got the number of fields we expected";
 }, "test full parse of problematic header";
+
+# vim: expandtab shiftwidth=4

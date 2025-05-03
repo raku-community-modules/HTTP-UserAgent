@@ -1,4 +1,3 @@
-use v6;
 use HTTP::UserAgent;
 use Test;
 
@@ -30,4 +29,4 @@ IO::Socket::INET.^find_method('recv').unwrap($wrapped);
 is(@recv_log.elems, 1, 'recv calls');
 like($resp.content, rx/^^document.*'\')'$$/, 'resp' );
 
-done-testing;
+# vim: expandtab shiftwidth=4

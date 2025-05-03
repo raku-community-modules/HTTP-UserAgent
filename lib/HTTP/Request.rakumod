@@ -21,48 +21,40 @@ my $CRLF = "\r\n";
 
 my $HRC_DEBUG = %*ENV<HRC_DEBUG>.Bool;
 
-proto method new(|c) { * }
+proto method new(|) {*}
 
 multi method new(Bool :$bin, *%args) {
 
-    if %args.keys.elems >= 1 {
+    if %args {
         my ($method, $url, $file, %fields, $uri);
         for %args.kv -> $key, $value {
             if $key.lc ~~ any(<get post head put delete patch>) {
                 $uri = $value.isa(URI) ?? $value !! URI.new($value);
                 $method = $key.uc;
-            } else {
+            }
+            else {
                 %fields{$key} = $value;
             }
         }
 
         my $header = HTTP::Header.new(|%fields);
-
-        $method //= 'GET';
-
-        self.new($method, $uri, $header, :$bin);
+        self.new($method // 'GET', $uri, $header, :$bin);
     }
     else {
-        self.bless;
+        self.bless
     }
 }
 
-multi method new(*@a where *.elems == 0 ) {
-    self.bless;
-}
+multi method new() { self.bless }
 
 multi method new(RequestMethod $method, URI $uri, HTTP::Header $header, Bool :$bin) {
     my $url = $uri.grammar.parse_result.orig;
     my $file = $uri.path_query || '/';
 
-    if not $header.field('Host').defined {
-        $header.field(Host => get-host-value($uri));
-    }
+    $header.field(Host => get-host-value($uri)) without $header.field('Host');
 
-    self.bless(:$method, :$url, :$header, :$file, :$uri, binary => $bin);
+    self.bless(:$method, :$url, :$header, :$file, :$uri, binary => $bin)
 }
-
-
 
 sub get-host-value(URI $uri --> Str) {
     my Str $host = $uri.host;
@@ -77,71 +69,61 @@ sub get-host-value(URI $uri --> Str) {
 
 method set-method($method) { $.method = $method.uc }
 
-proto method uri(|c) { * }
+proto method uri(|) {*}
 
 multi method uri($uri is copy where URI|Str) {
     $!uri = $uri.isa(Str) ?? URI.new($uri) !! $uri ;
     $!url = $!uri.grammar.parse_result.orig;
     $!file = $!uri.path_query || '/';
     self.field(Host => get-host-value($!uri));
-    $!uri;
+    $!uri
 }
 
-multi method uri() is rw {
-    $!uri;
+multi method uri() is rw { $!uri }
+
+proto method host(|) {*}
+
+multi method host(--> Str:D) is rw {
+    $!host = ~self.field('Host').values without $!host;
+    $!host
 }
 
-proto method host(|c) { * }
+proto method port(|) {*}
 
-multi method host() returns Str is rw {
-    if not $!host.defined {
-         $!host = ~self.field('Host').values;
-    }
-    $!host;
-}
-
-proto method port(|c) { * }
-
-multi method port() returns Int is rw {
+multi method port(--> Int:D) is rw {
     if not $!port.defined {
         # if there isn't a scheme the no default port
         if try self.uri.scheme {
             $!port = self.uri.port;
         }
     }
-    $!port;
+    $!port
 }
 
-proto method scheme(|c) { * }
+proto method scheme(|) {*}
 
-multi method scheme() returns Str is rw {
-    if not $!scheme.defined {
-        $!scheme = self.uri.scheme;
-
+multi method scheme(--> Str:D) is rw {
+    without $!scheme {
         CATCH {
-            default {
-                $!scheme = 'http';
-            }
+            default { $!scheme = 'http' }
         }
+        $!scheme = self.uri.scheme;
     }
     $!scheme
 }
 
 method add-cookies($cookies) {
-    if $cookies.cookies.elems {
-        $cookies.add-cookie-header(self);
-    }
+    $cookies.add-cookie-header(self) if $cookies.cookies;
 }
 
-proto method add-content(|c) { * }
+proto method add-content(|) {*}
 
-multi method add-content(Str $content) {
+multi method add-content(Str:D $content) {
     self.content ~= $content;
     self.header.field(Content-Length => self.content.encode.bytes.Str);
-
 }
 
-proto method add-form-data(|c) { * }
+proto method add-form-data(|) {*}
 
 multi method add-form-data(:$multipart, *%data) {
     self.add-form-data(%data.sort.Array, :$multipart);
@@ -191,11 +173,11 @@ multi method add-form-data(Array $data, :$multipart) {
             self.header.field(Content-Length => $encoded-content.encode('ascii').bytes.Str);
         }
     }
-    self.header.field(Content-Type => $ct);
+    self.header.field(Content-Type => $ct)
 }
 
 
-method form-data(Array $content, Str $boundary) {
+method form-data(Array:D $content, Str:D $boundary) {
     my @parts;
     for @$content {
         my ($k, $v) = $_.key, $_.value;
@@ -218,7 +200,7 @@ method form-data(Array $content, Str $boundary) {
                 }
                 my $content;
                 my $headers = HTTP::Header.new(|@headers);
-                if ($file) {
+                if $file {
                     # TODO: dynamic file upload support
                     $content = $file.IO.slurp;
                     unless $headers.field('Content-Type') {
@@ -247,7 +229,7 @@ method form-data(Array $content, Str $boundary) {
                 }
             }
             default {
-                die "unsupported type: {$v.WHAT.gist}({$content.perl})";
+                die "unsupported type: $v.WHAT.gist()($content.raku())";
             }
         }
     }
@@ -272,7 +254,7 @@ method form-data(Array $content, Str $boundary) {
                 ~ @parts.join("$CRLF--$boundary$CRLF")
                 ~ "$CRLF--$boundary--$CRLF";
 
-    return $generated-content, $boundary;
+    $generated-content, $boundary
 }
 
 
@@ -280,14 +262,14 @@ method make-boundary(int $size=10) {
     my $str = (1..$size*3).map({(^256).pick.chr}).join('');
     my $b = MIME::Base64.new.encode_base64($str, :oneline);
     $b ~~ s:g/\W/X/;  # ensure alnum only
-    $b;
+    $b
 }
 
 
 method Str (:$debug, Bool :$bin) {
     $.file = '/' ~ $.file unless $.file.starts-with: '/';
     my $s = "$.method $.file $.protocol";
-    $s ~= $CRLF ~ callwith($CRLF, :debug($debug), :$bin);
+    $s ~= $CRLF ~ callwith($CRLF, :$debug, :$bin);
 }
 
 method parse($raw_request) {
@@ -307,109 +289,6 @@ method parse($raw_request) {
     self.uri = URI.new($.url) ;
 
     nextsame;
-
-    self;
 }
 
-=begin pod
-
-=head1 NAME
-
-HTTP::Request - class encapsulating HTTP request message
-
-=head1 SYNOPSIS
-
-    use HTTP::Request;
-    my $request = HTTP::Request.new(GET => 'http://www.example.com/');
-
-=head1 DESCRIPTION
-
-Module provides functionality to easily manage HTTP requests.
-
-=head1 METHODS
-
-=head2 method new
-
-    multi method new(*%args)
-    multi method new(Str $method, URI $uri, HTTP::Header $header);
-
-A constructor, the first form takes parameters like:
-
-=item method => URL, where method can be POST, GET ... etc.
-=item field => values, header fields
-
-    my $req = HTTP::Request.new(:GET<example.com>, :h1<v1>);
-
-The second form takes the key arguments as simple positional parameters and
-is designed for use in places where for example the request method may be
-calculated and the headers pre-populated.
-
-=head2 method set-method
-
-    method set-method(Str $method)
-
-Sets a method of the request.
-
-    my $req = HTTP::Request.new;
-    $req.set-method: 'POST';
-
-=head2 method uri
-
-    method uri(Str $url)
-    method uri(URI $uri)
-
-Sets URL to request.
-
-    my $req = HTTP::Request.new;
-    $req.uri: 'example.com';
-
-=head2 method add-cookies
-
-    method add-cookies(HTTP::Cookies $cookies)
-
-This will cause the appropriate cookie headers to be added from the
-supplied HTTP::Cookies object.
-
-=head2 method add-form-data
-
-        multi method add-form-data(%data, :$multipart)
-        multi method add-form-data(:$multipart, *%data);
-        multi method add-form-data(Array $data, :$multipart)
-
-Adds the form data, supplied either as a Hash, an Array of Pair,
-or in a named parameter style, to the POST request (it doesn't
-make sense on most other request types.) The default is to use
-'application/x-www-form-urlencoded' and 'multipart/form-data' can be used
-by providing the ':multipart' adverb.  Alternatively a previously applied
-"content-type" header of either 'application/x-www-form-urlencoded'
-or 'multipart/form-data' will be respected and in the latter case any
-applied boundary marker will be retained.
-
-As a special case for multipart data if the value for some key in the data
-is an Array of at least one item then it is taken to be a description of a
-file to be "uploaded" where the first item is the path to the file to be
-inserted, the second (optional) an alternative name to be used in the
-content disposition header and the third an optional Array of Pair that
-will provide addtional header lines for the part.
-
-
-=head2 method Str
-
-    method Str returns Str;
-
-Returns stringified object.
-
-=head2 method parse
-
-    method parse(Str $raw_request) returns HTTP::Request
-
-Parses raw HTTP request.
-See L<HTTP::Message>
-
-For more documentation, see L<HTTP::Message>.
-
-=head1 SEE ALSO
-
-L<HTTP::Message>, L<HTTP::Response>
-
-=end pod
+# vim: expandtab shiftwidth=4

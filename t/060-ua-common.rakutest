@@ -1,4 +1,3 @@
-use v6;
 use Test;
 
 plan 2;
@@ -9,3 +8,5 @@ my $chrome_linux = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
 
 is get-ua('chrome_linux'), $chrome_linux, 'get-ua 1/2';
 is get-ua('im not exist'), 'im not exist', 'get-ua 2/2';
+
+# vim: expandtab shiftwidth=4

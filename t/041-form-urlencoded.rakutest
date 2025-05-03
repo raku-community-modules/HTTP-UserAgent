@@ -38,3 +38,5 @@ subtest {
       'url='
       ~ 'http%3A%2F%2Fexample.com%2Fbar%3Fuser%3Dbaz%26pass%3Dxyzzy%23%22foo%22';
 }, 'urlencoded byte serializer - unsafe characters';
+
+# vim: expandtab shiftwidth=4

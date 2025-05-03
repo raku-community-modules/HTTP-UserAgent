@@ -1,5 +1,4 @@
 use Test;
-
 use HTTP::Message;
 
 plan 21;
@@ -86,4 +85,4 @@ subtest {
    is HTTP::Message.new(Content-Type => 'text/html; charset=utf-8').charset, 'utf-8', "explicity charset";
 }, "charset";
 
-done-testing;
+# vim: expandtab shiftwidth=4

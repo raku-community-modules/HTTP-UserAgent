@@ -1,0 +1,4 @@
+Revision history for HTTP::UserAgent
+
+{{$NEXT}}
+    - Initial version as a Raku Community module

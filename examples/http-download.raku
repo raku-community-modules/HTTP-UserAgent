@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 use HTTP::UserAgent :simple;
 
 sub MAIN(Str $url, Str $filename?) {
@@ -18,3 +18,5 @@ sub get-filename($url is copy) {
         'index.html' !! $url.substr($url.rindex('/') + 1);
 
 }
+
+# vim: expandtab shiftwidth=4

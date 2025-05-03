@@ -1,4 +1,4 @@
-name: test
+name: MacOS
 
 on:
   push:
@@ -13,9 +13,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
           - macos-latest
-          # - windows-latest
         raku-version:
           - 'latest'
     runs-on: ${{ matrix.os }}
@@ -25,11 +23,8 @@ jobs:
         with:
           raku-version: ${{ matrix.raku-version }}
       - name: Install Libraries (MacOS)
-        if: matrix.os == 'macOS-latest'
         run: brew install openssl
       - name: Install Dependencies
         run: zef install --/test --test-depends --deps-only .
-      - name: Install App::Prove6
-        run: zef install --/test App::Prove6
-      - name: Run Tests
-        run: prove6 -I. t
+      - name: Run Special Tests
+        run: raku run-tests -i

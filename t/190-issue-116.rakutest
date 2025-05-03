@@ -1,7 +1,4 @@
-use v6;
-
 use HTTP::UserAgent;
-
 use Test;
 
 plan 2;
@@ -18,14 +15,11 @@ unless %*ENV<NETWORK_TESTING> {
   exit;
 }
 
-my $url = 'http://github.com';
+my $ua = HTTP::UserAgent.new;
 
-my $ua  = HTTP::UserAgent.new;
-my $get = ~$ua.get($url);
+my HTTP::Response $res;
+my $request = HTTP::Request.new(GET => 'http://httpbin.org/status/304');
+lives-ok { $res = $ua.request($request) }, "another request that always results in 304 lives";
+is $res.code , 304, "and it is actually a 304";
 
-ok $get ~~ /'</html>'/, 'http -> https redirect get 1/1';
-
-throws-like {
-    temp $ua.max-redirects = 0;
-    $ua.get($url);
-}, X::HTTP::Response, "Max redirects exceeded";
+# vim: expandtab shiftwidth=4

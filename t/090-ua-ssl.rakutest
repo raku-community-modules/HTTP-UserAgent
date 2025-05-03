@@ -1,7 +1,4 @@
-use v6;
-
 use HTTP::UserAgent;
-
 use Test;
 
 plan 2;
@@ -29,3 +26,5 @@ my $get = ~$ssl.get($url);
 my $search-html = "</html>\n\n\r\n";
 is $get.substr($get.chars - $search-html.chars), $search-html, 'get 1/1';
 # it should definitely have more/better tests
+
+# vim: expandtab shiftwidth=4

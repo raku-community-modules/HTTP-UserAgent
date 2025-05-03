@@ -14,7 +14,6 @@ use MIME::Base64;
 
 constant CRLF = Buf.new(13, 10);
 
-
 # placeholder role to make signatures nicer
 # and enable greater abstraction
 role Connection {
@@ -58,7 +57,7 @@ my sub search-header-end(Blob $input) {
         }
         $i++;
     }
-    return Nil;
+    Nil
 }
 
 my sub _index_buf(Blob $input, Blob $sub) {
@@ -69,7 +68,7 @@ my sub _index_buf(Blob $input, Blob $sub) {
         }
         $end-pos++;
     }
-    return -1;
+    -1
 }
 
 submethod BUILD(:$!useragent, Bool :$!throw-exceptions, :$!max-redirects = 5, :$!debug, :$!redirects-in-a-row) {
@@ -95,53 +94,53 @@ method auth(Str $login, Str $password) {
     $!auth_password = $password;
 }
 
-proto method get(|c) { * }
+proto method get(|) {*}
 
 multi method get(URI $uri is copy, Bool :$bin,  *%header ) {
     my $request  = HTTP::Request.new(GET => $uri, |%header);
-    self.request($request, :$bin);
+    self.request($request, :$bin)
 }
 
 multi method get(Str $uri is copy, Bool :$bin,  *%header ) {
-    self.get(URI.new(_clear-url($uri)), :$bin, |%header);
+    self.get(URI.new(_clear-url($uri)), :$bin, |%header)
 }
 
-proto method post(|c) { * }
+proto method post(|) {*}
 
 multi method post(URI $uri is copy, %form , Bool :$bin,  *%header) {
     my $request = HTTP::Request.new(POST => $uri, |%header);
     $request.add-form-data(%form);
-    self.request($request, :$bin);
+    self.request($request, :$bin)
 }
 
 multi method post(Str $uri is copy, %form, Bool :$bin, *%header ) {
-    self.post(URI.new(_clear-url($uri)), %form, |%header);
+    self.post(URI.new(_clear-url($uri)), %form, |%header)
 }
 
-proto method put(|c) { * }
+proto method put(|) {*}
 
 multi method put(URI $uri is copy, %form , Bool :$bin,  *%header) {
     my $request = HTTP::Request.new(PUT => $uri, |%header);
     $request.add-form-data(%form);
-    self.request($request, :$bin);
+    self.request($request, :$bin)
 }
 
 multi method put(Str $uri is copy, %form, Bool :$bin, *%header ) {
-    self.put(URI.new(_clear-url($uri)), %form, |%header);
+    self.put(URI.new(_clear-url($uri)), %form, |%header)
 }
 
-proto method delete(|c) { * }
+proto method delete(|) {*}
 
 multi method delete(URI $uri is copy, Bool :$bin,  *%header ) {
     my $request  = HTTP::Request.new(DELETE => $uri, |%header);
-    self.request($request, :$bin);
+    self.request($request, :$bin)
 }
 
 multi method delete(Str $uri is copy, Bool :$bin,  *%header ) {
-    self.delete(URI.new(_clear-url($uri)), :$bin, |%header);
+    self.delete(URI.new(_clear-url($uri)), :$bin, |%header)
 }
 
-method request(HTTP::Request $request, Bool :$bin) returns HTTP::Response {
+method request(HTTP::Request $request, Bool :$bin --> HTTP::Response:D) {
     my HTTP::Response $response;
 
     # add cookies to the request
@@ -189,16 +188,17 @@ method request(HTTP::Request $request, Bool :$bin) returns HTTP::Response {
         }
     }
 
-    return $response;
+    $response
 }
 
-proto method get-content(|c) { * }
+proto method get-content(|) {*}
 
 # When we have a content-length
-multi method get-content(Connection $conn, Blob $content, $content-length) returns Blob {
+multi method get-content(Connection $conn, Blob $content, $content-length --> Blob:D) {
     if $content.bytes == $content-length {
-        $content;
-    } else {
+        $content
+    }
+    else {
         # Create a Buf with what we have now and append onto
         # it until we've read the right amount.
         my $buf = Buf.new($content);
@@ -208,12 +208,12 @@ multi method get-content(Connection $conn, Blob $content, $content-length) retur
            $buf.append($read);
            $total-bytes-read += $read.bytes;
         }
-        $buf;
+        $buf
     }
 }
 
 # fallback when not chunked and no content length
-multi method get-content(Connection $conn, Blob $content is rw ) returns Blob {
+multi method get-content(Connection $conn, Blob $content is rw --> Blob:D) {
 
     while my $new_content = $conn.recv(:bin) {
         $content ~= $new_content;
@@ -221,7 +221,7 @@ multi method get-content(Connection $conn, Blob $content is rw ) returns Blob {
     $content;
 }
 
-method get-chunked-content(Connection $conn, Blob $content is rw ) returns Blob {
+method get-chunked-content(Connection $conn, Blob $content is rw --> Blob:D) {
     my Buf $chunk = $content.clone;
     $content  = Buf.new;
     # We carry on as long as we receive something.
@@ -243,7 +243,8 @@ method get-chunked-content(Connection $conn, Blob $content is rw ) returns Blob 
             }
             $content ~= $chunk.subbuf(0, $chunk-size);
             $chunk = $chunk.subbuf($chunk-size+2);
-        } else {
+        }
+        else {
             # XXX Reading 1 byte is inefficient code.
             #
             # But IO::Socket#read/IO::Socket#recv reads from socket until
@@ -256,10 +257,10 @@ method get-chunked-content(Connection $conn, Blob $content is rw ) returns Blob 
         }
     };
 
-    return $content;
+    $content
 }
 
-method get-response(HTTP::Request $request, Connection $conn, Bool :$bin) returns HTTP::Response {
+method get-response(HTTP::Request $request, Connection $conn, Bool :$bin --> HTTP::Response:D) {
     my Blob[uint8] $first-chunk = Blob[uint8].new;
     my $msg-body-pos;
 
@@ -328,13 +329,13 @@ method get-response(HTTP::Request $request, Connection $conn, Bool :$bin) return
 
         $response.content = $content andthen $response.content = $response.decoded-content(:$bin);
     }
-    return $response;
+    $response
 }
 
 
-proto method get-connection(|c) { * }
+proto method get-connection(|) {*}
 
-multi method get-connection(HTTP::Request $request ) returns Connection {
+multi method get-connection(HTTP::Request $request --> Connection:D) {
     my $host = $request.host;
     my $port = $request.port;
 
@@ -349,11 +350,11 @@ multi method get-connection(HTTP::Request $request ) returns Connection {
         }
         $request.field(Connection => 'close');
     }
-    self.get-connection($request, $host, $port);
+    self.get-connection($request, $host, $port)
 }
 
 my $https_lock = Lock.new;
-multi method get-connection(HTTP::Request $request, Str $host, Int $port?) returns Connection {
+multi method get-connection(HTTP::Request $request, Str $host, Int $port? --> Connection:D) {
     my $conn;
     if $request.scheme eq 'https' {
         $https_lock.lock;
@@ -366,7 +367,7 @@ multi method get-connection(HTTP::Request $request, Str $host, Int $port?) retur
         $conn = IO::Socket::INET.new(:$host, :port($port // 80), :timeout($.timeout));
     }
     $conn does Connection;
-    $conn;
+    $conn
 }
 
 # heuristic to determine whether we are running in the CGI
@@ -405,10 +406,10 @@ method no-proxy() {
     @!no-proxy;
 }
 
-proto method use-proxy(|c) { * }
+proto method use-proxy(|) {*}
 
-multi method use-proxy(HTTP::Request $request) returns Bool {
-    samewith $request.host;
+multi method use-proxy(HTTP::Request $request --> Bool:D) {
+    self.use-proxy($request.host)
 }
 
 multi method use-proxy(Str $host) returns Bool {
@@ -420,15 +421,15 @@ multi method use-proxy(Str $host) returns Bool {
             last;
         }
     }
-    $rc;
+    $rc
 }
 
-multi sub basic-auth-token(Str $login, Str $passwd ) returns Str {
+multi sub basic-auth-token(Str $login, Str $passwd --> Str:D) {
     basic-auth-token("{$login}:{$passwd}");
 
 }
 
-multi sub basic-auth-token(Str $creds where * ~~ /':'/) returns Str {
+multi sub basic-auth-token(Str $creds where * ~~ /':'/ --> Str:D) {
     "Basic " ~ MIME::Base64.encode-str($creds, :oneline);
 }
 
@@ -448,204 +449,28 @@ our sub get($target where URI|Str) is export(:simple) {
     my $ua = HTTP::UserAgent.new(:throw-exceptions);
     my $response = $ua.get($target);
 
-    return $response.decoded-content;
+    $response.decoded-content
 }
 
 our sub head(Str $url) is export(:simple) {
     my $ua = HTTP::UserAgent.new(:throw-exceptions);
-    return $ua.get($url).header.hash<Content-Type Content-Length Last-Modified Expires Server>;
+    $ua.get($url).header.hash<Content-Type Content-Length Last-Modified Expires Server>
 }
 
 our sub getprint(Str $url) is export(:simple) {
     my $response = HTTP::UserAgent.new(:throw-exceptions).get($url);
     print $response.decoded-content;
-    $response.code;
+    $response.code
 }
 
 our sub getstore(Str $url, Str $file) is export(:simple) {
-    $file.IO.spurt: get($url);
+    $file.IO.spurt: get($url)
 }
 
 sub _clear-url(Str $url is copy) {
-    $url = "http://$url" if $url.substr(0, 5) ne any('http:', 'https');
-    $url;
+    $url.starts-with('http://' | 'https://')
+      ?? $url
+      !! "http://$url"
 }
 
-=begin pod
-
-=head1 NAME
-
-HTTP::UserAgent - Web user agent class
-
-=head1 SYNOPSIS
-
-    use HTTP::UserAgent;
-
-    my $ua = HTTP::UserAgent.new;
-    $ua.timeout = 10;
-
-    my $response = $ua.get("URL");
-
-    if $response.is-success {
-        say $response.content;
-    } else {
-        die $response.status-line;
-    }
-
-=head1 DESCRIPTION
-
-This module provides functionality to crawling the web with a handling cookies and correct User-Agent value.
-
-It has TLS/SSL support.
-
-=head1 METHODS
-
-=head2 method new
-
-    method new(HTTP::UserAgent:U: :$!useragent, Bool :$!throw-exceptions, :$!max-redirects = 5, :$!debug) returns HTTP::UserAgent
-
-Default constructor.
-
-There are four optional named arguments:
-
-=item useragent
-
-A string that specifies what will be provided in the C<User-Agent> header in
-the request.  A number of standard user agents are described in
-L<HTTP::UserAgent::Common>, but a string that is not specified there will be
-used verbatim.
-
-=item throw-exceptions
-
-By default the C<request> method will not throw an exception if the
-response from the server indicates that the request was unsuccesful, in
-this case you should check C<is-success> to determine the status of the
-L<HTTP::Response> returned.  If this is specified then an exception will
-be thrown if the request was not a success, however you can still retrieve
-the response from the C<response> attribute of the exception object.
-
-=item max-redirects
-
-This is the maximum number of redirects allowed for a single request, if
-this is exceeded then an exception will be thrown (this is not covered by
-C<no-exceptions> above and will always be throw,) the default value is 5.
-
-=item debug
-
-It can etheir be a Bool like simply C<:debug> or you can pass it a IO::Handle
-or a file name. Eg C<:debug($*ERR)> will ouput on stderr C<:debug("mylog.txt")>
-will ouput on the file.
-
-=head2 method auth
-
-    method auth(HTTP::UserAgent:, Str $login, Str $password)
-
-Sets username and password needed to HTTP Auth.
-
-=head2 method get
-
-    multi method get(Str $url is copy, :bin?, *%headers) returns HTTP::Response
-    multi method get(URI $uri, :bin?, *%headers) returns HTTP::Response
-
-Requests the $url site, returns HTTP::Response, except if throw-exceptions
-is set as described above whereby an exception will be thrown if the
-response indicates that the request wasn't successfull.
-
-If the Content-Type of the response indicates that the content is text the
-C<content> of the Response will be a decoded string, otherwise it will be
-left as a L<Blob>.
-
-If the ':bin' adverb is supplied this will force the response C<content> to
-always be an undecoded L<Blob>
-
-Any additional named arguments will be applied as headers in the request.
-
-=head2 method post
-
-    multi method post(URI $uri, %form, *%header ) -> HTTP::Response
-    multi method post(Str $uri, %form, *%header ) -> HTTP::Response
-
-Make a POST request to the specified uri, with the provided Hash of %form
-data in the body encoded as "application/x-www-form-urlencoded" content.
-Any additional named style arguments will be applied as headers in the
-request.
-
-An L<HTTP::Response> will be returned, except if throw-exceptions has been set
-and the response indicates the request was not successfull.
-
-If the Content-Type of the response indicates that the content is text the
-C<content> of the Response will be a decoded string, otherwise it will be
-left as a L<Blob>.
-
-If the ':bin' adverb is supplied this will force the response C<content> to
-always be an undecoded L<Blob>
-
-If greater control over the content of the request is required you should
-create an L<HTTP::Request> directly and populate it as needed,
-
-=head2 method request
-
-    method request(HTTP::Request $request, :bin?) returns HTTP::Response
-
-Performs the request described by the supplied L<HTTP::Request>, returns
-a L<HTTP::Response>, except if throw-exceptions is set as described above
-whereby an exception will be thrown if the response indicates that the
-request wasn't successful.
-
-If the response has a 'Content-Encoding' header that indicates that the
-content was compressed, then it will attempt to inflate the data using
-L<Compress::Zlib>, if the module is not installed then an exception will
-be thrown. If you do not have or do not want to install L<Compress::Zlib>
-then you should be able to send an 'Accept-Encoding' header with a value
-of 'identity' which should cause a well behaved server to send the content
-verbatim if it is able to.
-
-If the Content-Type of the response indicates that the content is text the
-C<content> of the Response will be a decoded string, otherwise it will be
-left as a L<Blob>. The content-types that are always considered to be
-binary (and thus left as a L<Blob> ) are those with the major-types of
-'image','audio' and 'video', certain 'application' types are considered to
-be 'text' (e.g. 'xml', 'javascript', 'json').
-
-If the ':bin' adverb is supplied this will force the response C<content> to
-always be an undecoded L<Blob>
-
-You can use the helper subroutines defined in L<HTTP::Request::Common> to
-create the L<HTTP::Request> for you or create it yourself if you have more
-complex requirements.
-
-=head2 routine get :simple
-
-    sub get(Str $url) returns Str is export(:simple)
-
-Like method get, but returns decoded content of the response.
-
-=head2 routine head :simple
-
-    sub head(Str $url) returns Parcel is export(:simple)
-
-Returns values of following header fields:
-
-=item Content-Type
-=item Content-Length
-=item Last-Modified
-=item Expires
-=item Server
-
-=head2 routine getstore :simple
-
-    sub getstore(Str $url, Str $file) is export(:simple)
-
-Like routine get but writes the content to a file.
-
-=head2 routine getprint :simple
-
-    sub getprint(Str $url) is export(:simple)
-
-Like routine get but prints the content and returns the response code.
-
-=head1 SEE ALSO
-
-L<HTTP::Message>
-
-=end pod
+# vim: expandtab shiftwidth=4

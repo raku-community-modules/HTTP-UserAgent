@@ -1,8 +1,6 @@
-use v6.c;
-
 module TestServer {
 
-    sub test-server(Promise $done-promise, Int :$port) is export returns Promise {
+    sub test-server(Promise $done-promise, Int :$port --> Promise:D) is export {
         my $server-promise = start {
             sub _index_buf(Blob $input, Blob $sub) {
                 my $end-pos = 0;
@@ -62,7 +60,8 @@ module TestServer {
                 }
             }
         }
-        $server-promise;
+        $server-promise
     }
 }
-# vim: expandtab shiftwidth=4 ft=perl6
+
+# vim: expandtab shiftwidth=4

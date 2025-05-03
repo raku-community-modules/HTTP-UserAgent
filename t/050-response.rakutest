@@ -1,9 +1,4 @@
-#!perl6
-
-use v6;
-
 use Test;
-
 use HTTP::Response;
 
 plan 28;
@@ -82,4 +77,4 @@ subtest {
     is $res.header.field('X-Duck'), "ð\x[9F]¦\x[86]", 'Header value decoded as ISO-8859-1';
 }, 'Non-ASCII header values'
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4

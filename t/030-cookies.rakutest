@@ -1,11 +1,10 @@
 use Test;
-
 use HTTP::Cookies;
 # strangely these aren't required for the test to work
 
 plan 31;
 
-BEGIN my $file = './cookies.dat';
+BEGIN my $file = $*PROGRAM.sibling('cookies.dat').absolute;
 LEAVE try $file.IO.unlink;
 
 my $c = HTTP::Cookies.new(
@@ -229,4 +228,4 @@ subtest {
     is $c.cookies[0].fields<Max-Age>,0, "and the field is correct";
 }, "issue #163";
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4

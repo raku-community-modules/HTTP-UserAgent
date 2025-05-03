@@ -1,5 +1,4 @@
-#!/usr/bin/env perl6
-use v6;
+#!/usr/bin/env raku
 use HTTP::UserAgent;
 
 my $ua = HTTP::UserAgent.new;
@@ -9,8 +8,11 @@ my $response = $ua.get('https://github.com');
 
 if $response.is-success {
     say $response.content;
-} else {
+}
+else {
     die $response.status-line;
 }
 
 $response = $ua.get('https://github.com/404here');
+
+# vim: expandtab shiftwidth=4

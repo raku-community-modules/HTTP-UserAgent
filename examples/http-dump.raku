@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 use HTTP::UserAgent;
 
 sub MAIN($url) {
@@ -9,7 +9,10 @@ sub MAIN($url) {
         say "{$content.substr(0, 800)}...";
         $content .= substr(800);
         say "(+ {$content.encode('utf8').bytes} bytes not shown)";
-    } else {
+    }
+    else {
         $content.say;
     }
 }
+
+# vim: expandtab shiftwidth=4

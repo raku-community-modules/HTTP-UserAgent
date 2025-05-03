@@ -1,7 +1,6 @@
 # TODO probably should contain Bufs of data and test HTTP::Message
 # directly rather than go over the wire.
 
-use v6;
 use HTTP::UserAgent;
 use Test;
 
@@ -22,3 +21,4 @@ for @tests -> $i {
     ok $res.content ~~ / 'é' /, "got correctly encoded é {$i} from w3.org" or warn :$url.perl;
 }
 
+# vim: expandtab shiftwidth=4

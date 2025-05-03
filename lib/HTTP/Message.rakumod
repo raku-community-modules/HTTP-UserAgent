@@ -32,25 +32,25 @@ class X::Decoding is Exception {
     }
 }
 
-method content-type() returns Str {
+method content-type(--> Str:D) {
     $!header.field('Content-Type').values[0] || '';
 }
 
 has HTTP::MediaType $!media-type;
 
-method media-type() returns HTTP::MediaType {
-    if not $!media-type.defined { 
+method media-type(--> HTTP::MediaType) {
+    without $!media-type { 
         if self.content-type() -> $ct {
             $!media-type = HTTP::MediaType.parse($ct);
         }
     }
-    $!media-type;
+    $!media-type
 }
 
 # Don't want to put the heuristic in the HTTP::MediaType
 # Also moving this here makes it much more easy to test
 
-method charset() returns Str {
+method charset(--> Str:D) {
     if self.media-type -> $mt {
         $mt.charset || ( $mt.major-type eq 'text' ?? $mt.sub-type eq 'html' ?? 'utf-8' !! 'iso-8859-1' !! 'utf-8');
     }
@@ -62,53 +62,46 @@ method charset() returns Str {
 
 # This is already a candidate for refactoring
 # Just want to get it working
-method is-text() returns Bool {
-    my Bool $ret = do {
-        if $!binary {
-            False;
+method is-text(--> Bool:D) {
+    if $!binary {
+        False
+    }
+    elsif self.media-type -> $mt {
+        if $mt.type ~~ any(@!text-types) {
+            True
         }
         else {
-            if self.media-type -> $mt {
-                if $mt.type ~~ any(@!text-types) {
-                    True;
+            given $mt.major-type {
+                when 'text' {
+                    True
                 }
-                else {
-                    given $mt.major-type {
-                        when 'text' {
-                            True;
-                        }
-                        when any(<image audio video>) {
-                            False;
-                        }
-                        when 'application' {
-                            given $mt.sub-type {
-                                when /xml|javascript|json/ {
-                                    True;
-                                }
-                                default {
-                                    False;
-                                }
-                            }
+                when any(<image audio video>) {
+                    False
+                }
+                when 'application' {
+                    given $mt.sub-type {
+                        when /xml|javascript|json/ {
+                            True
                         }
                         default {
-                            # Not sure about this
-                            True;
+                            False
                         }
                     }
                 }
-            }
-            else {
-                # No content type, try and blow up
-                True;
+                default {
+                    # Not sure about this
+                    True
+                }
             }
         }
     }
-    $ret;
+    else {
+        # No content type, try and blow up
+        True
+    }
 }
 
-method is-binary() returns Bool {
-    !self.is-text;
-}
+method is-binary(--> Bool:D) { !self.is-text }
 
 method content-encoding() {
     $!header.field('Content-Encoding');
@@ -118,7 +111,7 @@ class X::Deflate is Exception {
     has Str $.message;
 }
 
-method inflate-content() returns Blob {
+method inflate-content(--> Blob:D) {
     if self.content-encoding -> $v is copy {
         # This is a guess
         $v = 'zlib' if $v eq 'compress' ;
@@ -167,35 +160,35 @@ method decoded-content(:$bin) {
 }
 
 multi method field(Str $f) {
-    $.header.field($f);
+    $.header.field($f)
 }
 
 multi method field(*%fields) {
-    $.header.field(|%fields);
+    $.header.field(|%fields)
 }
 
 method push-field(*%fields) {
-    $.header.push-field(|%fields);
+    $.header.push-field(|%fields)
 }
 
 method remove-field(Str $field) {
-    $.header.remove-field($field);
+    $.header.remove-field($field)
 }
 
 method clear {
     $.header.clear;
-    $.content = '';
+    $.content = ''
 }
 
 method parse($raw_message) {
     my @lines = $raw_message.split(/$CRLF/);
 
-    my ($first, $second, $third);
-    ($first, $second, $third) = @lines.shift.split(/\s+/);
+    my ($first, $second, $third) = @lines.shift.split(/\s+/);
 
     if $third.index('/') { # is a request
         $.protocol = $third;
-    } else {               # is a response
+    }
+    else {               # is a response
         $.protocol = $first;
     }
 
@@ -218,7 +211,7 @@ method parse($raw_message) {
         }
     }
 
-    self;
+    self
 }
 
 method Str($eol = "\n", :$debug, Bool :$bin) {
@@ -242,115 +235,7 @@ method Str($eol = "\n", :$debug, Bool :$bin) {
         }
     }
 
-    return $s;
+    $s
 }
 
-=begin pod
-
-=head1 NAME
-
-HTTP::Message - class encapsulating HTTP message
-
-=head1 SYNOPSIS
-
-    use HTTP::Message;
-    my $raw_msg = "GET / HTTP/1.1\r\nHost: somehost\r\n\r\n";
-    my $mess = HTTP::Message.new.parse($raw_msg);
-    say $mess;
-
-=head1 DESCRIPTION
-
-This module provides a bunch of methods to easily manage HTTP message.
-
-=head1 METHODS
-
-=head2 method new
-
-    method new($content?, *%fields)
-
-A constructor, takes following parameters:
-
-=item content : content of the message (optional)
-=item fields : fields of the header section
-
-    my $msg = HTTP::Message.new('content', :field<value>);
-
-=head2 method add-content
-
-    method add-content(HTTP::Message:, Str $content)
-
-Adds HTTP message content. It does not remove the existing value,
-it concats to the existing content.
-
-    my $msg = HTTP::Message.new('content', :field<value>);
-    $msg.add-content: 's';
-    say $msg.content; # says 'contents'
-
-=head2 method decoded-content
-
-    method decoded-content(HTTP::Message:)
-
-Returns decoded content of the message (using L<Encode> module to decode).
-
-    my $msg = HTTP::Message.new();
-    say $msg.decoded-content;
-
-=head2 method field
-
-    multi method field(HTTP::Message:, Str $s) returns HTTP::Header::Field
-    multi method field(HTTP::Message:, *%fields)
-
-See L<HTTP::Header>.
-
-=head2 method init-field
-
-    method init-field(HTTP::Message:, *%fields)
-
-See L<HTTP::Header>.
-
-=head2 method push-field
-
-    method push-field(HTTP::Message:, HTTP::Header::Field $field)
-
-See L<HTTP::Header>.
-
-=head2 method remove-field
-
-    method remove-field(HTTP::Message:, Str $field)
-
-See L<HTTP::Header>.
-
-=head2 method clear
-
-    method clear(HTTP::Message:)
-
-Removes the whole message, both header and content section.
-
-    my $msg = HTTP::Message.new('content', :field<value>);
-    $msg.clear;
-    say ~$msg; # says nothing
-
-=head2 method parse
-
-    method parse(HTTP::Message:, Str $raw_message) returns HTTP::Message
-
-Parses the whole HTTP message.
-
-It takes the HTTP message (with \r\n as a line separator)
-and obtain the header and content section, creates a HTTP::Header
-object.
-
-    my $msg = HTTP::Message.new.parse("GET / HTTP/1.1\r\nHost: example\r\ncontent\r\n");
-    say $msg.perl;
-
-=head2 method Str
-
-    method Str(HTTP::Message:, Str $eol = "\n") returns Str
-
-Returns HTTP message in a readable form.
-
-=head1 SEE ALSO
-
-L<HTTP::Request>, L<HTTP::Response>, L<Encode>
-
-=end pod
+# vim: expandtab shiftwidth=4
