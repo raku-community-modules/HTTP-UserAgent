@@ -1,4 +1,6 @@
 Revision history for HTTP::UserAgent
 
 {{$NEXT}}
+
+1.2.0  2025-05-04T00:27:49+02:00
     - Initial version as a Raku Community module
