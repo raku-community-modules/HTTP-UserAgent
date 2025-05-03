@@ -1,6 +1,6 @@
 use URI;
 use URI::Escape;
-use HTTP::Request:auth<github:sergot>;
+use HTTP::Request:auth<zef:raku-community-modules>;
 use HTTP::MediaType;
 use MIME::Base64;
 use HTTP::Header;

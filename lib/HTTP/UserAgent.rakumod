@@ -1,7 +1,7 @@
 unit class HTTP::UserAgent;
 
-use HTTP::Response:auth<github:sergot>;
-use HTTP::Request:auth<github:sergot>;
+use HTTP::Response:auth<zef:raku-community-modules>;
+use HTTP::Request:auth<zef:raku-community-modules>;
 use HTTP::Cookies;
 use HTTP::UserAgent::Common;
 use HTTP::UserAgent::Exception;

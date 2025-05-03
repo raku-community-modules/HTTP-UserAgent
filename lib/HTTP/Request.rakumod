@@ -90,7 +90,7 @@ multi method host(--> Str:D) is rw {
 
 proto method port(|) {*}
 
-multi method port(--> Int:D) is rw {
+multi method port(--> Int) is rw {
     if not $!port.defined {
         # if there isn't a scheme the no default port
         if try self.uri.scheme {

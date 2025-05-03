@@ -1,8 +1,8 @@
 unit class HTTP::Cookies;
 
 use HTTP::Cookie;
-use HTTP::Response:auth<github:sergot>;
-use HTTP::Request:auth<github:sergot>;
+use HTTP::Response:auth<zef:raku-community-modules>;
+use HTTP::Request:auth<zef:raku-community-modules>;
 use DateTime::Parse;
 
 has @.cookies;
